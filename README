@@ -1,0 +1,15 @@
+README for py-roms2roms
+
+Version 1.0.1
+
+py-roms2roms is a Python version of roms2roms (see Mason etal, 2010 and
+www.molemaker.org) that was written in Matlab.
+
+pyroms2roms creates ROMS boundary files for offline nesting, but it has
+expanded to make:
+
+(1) boundary files with SODA, Mercator, ECCO2, IBI
+(2) forcing files using CFSR and/or CCMP.
+
+Copyright (c) 2014 by Evan Mason, IMEDEA
+Email: emason@imedea.uib-csic.es

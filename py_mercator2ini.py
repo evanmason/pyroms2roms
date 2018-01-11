@@ -137,7 +137,8 @@ if __name__ == '__main__':
     # Mercator information
     #mercator_dir = '/marula/emason/data/mercator/nea_daily/2010/'
     #mercator_dir = '/marula/emason/data/mercator/nwmed/ORCA12/'
-    mercator_dir = '/marula/emason/data/IBI_daily/'
+    #mercator_dir = '/marula/emason/data/IBI_daily/'
+    mercator_dir = '/data_cmems/ibi_phys005001b/'
     #mercator_dir = '/marula/emason/data/mercator/albsea/'
     
     # ROMS path and filename information
@@ -150,7 +151,8 @@ if __name__ == '__main__':
     #roms_dir = '/Users/emason/runs2009/na_2009_7pt5/'
     #roms_dir     = '/marula/emason/runs2014/NWMED2/'
     #roms_dir     = '/marula/emason/runs2014/AlbSea175/'
-    roms_dir     = '/marula/emason/runs2015/AlbSea500/'
+    #roms_dir     = '/marula/emason/runs2015/AlbSea500/'
+    roms_dir     = '/marula/emason/runs2016/meddies/'
     #roms_dir = '/marula/emason/runs2014/nwmed5km/'
     
     
@@ -160,7 +162,8 @@ if __name__ == '__main__':
     #roms_grd = 'grd_nwmed_2km.nc'
     #roms_grd = 'grd_AlbSea175.nc'
     #roms_grd = 'grd_nwmed5km_NARROW_STRAIT.nc'
-    roms_grd = 'grd_AlbSea500.nc'
+    #roms_grd = 'grd_AlbSea500.nc'
+    roms_grd = 'grd_meddies_1km.nc'
     
     # Set sigma transformation parameters
     if 'roms_grd_NA2009_7pt5km.nc' in roms_grd:
@@ -187,10 +190,17 @@ if __name__ == '__main__':
         chd_sigma_params = dict(theta_s=6.5, theta_b=0, hc=110, N=36)
         ini_filename = 'ini_test_constant.nc'
         ini_date = '20131231'
+
+    elif 'grd_meddies_1km.nc' in roms_grd:
+        chd_sigma_params = dict(theta_s=7, theta_b=6, hc=300, N=50)
+        #ini_filename = 'ini_meddies_ecco_198501.nc'
+        ini_filename = 'ini_meddies_IBI_4r1M_20160120.nc'
+        #ini_date = '20131130'
+        #ini_date = '20160120'
+        ini_date = '20140414'
     
     else:
-        print 'No sigma params defined for grid: %s' %roms_grd
-        raise Exception
+        raise Exception('No sigma params defined for grid: %s' %roms_grd)
     
     ini_time = 0.  # days
     tstart = 0.
@@ -207,8 +217,9 @@ if __name__ == '__main__':
     elif 'PSY2V4R4' in mercator_dir:
         to_be_done
         
-    elif 'IBI_daily' in mercator_dir:
-        mercator_ssh_file = 'pde_ibi36v3r1_ibisr_01dav_%s_%s_R????????_HC01.nc' %(ini_date, ini_date)
+    elif 'IBI_daily' in mercator_dir or 'ibi' in mercator_dir:
+        #mercator_ssh_file = 'pde_ibi36v3r1_ibisr_01dav_%s_%s_R????????_HC01.nc' %(ini_date, ini_date)
+        mercator_ssh_file = 'CMEMS_4r1M_IBI_PHY_NRT_PdE_01dav_%s_%s_R*_HC01.nc' % (ini_date, ini_date)
         mercator_temp_file = mercator_dir + mercator_ssh_file
         mercator_salt_file = mercator_dir + mercator_ssh_file
         mercator_u_file = mercator_dir + mercator_ssh_file
@@ -262,12 +273,14 @@ if __name__ == '__main__':
                                  ('SALT', mercator_salt_file),
                                  ('U', mercator_u_file),
                                  ('V', mercator_v_file)])
+    #mercator_vars = OrderedDict([('U', mercator_u_file),
+                                 #('V', mercator_v_file)])
     
     
     
     # Set partial domain chunk sizes
-    ndomx = 5
-    ndomy = 4
+    ndomx = 2# 5
+    ndomy = 3#4
     
     Mp, Lp = romsgrd.h().shape
     szx = np.floor(Lp / ndomx).astype(int)
@@ -370,7 +383,7 @@ if __name__ == '__main__':
                         ubar = mercator.barotropic.copy()
             
                     elif mercator.vartype in 'V':
-                
+                        #aaaaaaaa
                         ubar, vbar = romsgrd.rotate(ubar, mercator.barotropic, sign=1)
                         ubar = romsgrd.rho2u_2d(ubar)
                         ubar *= romsgrd.umask()

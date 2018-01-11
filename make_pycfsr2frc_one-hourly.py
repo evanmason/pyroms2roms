@@ -651,7 +651,7 @@ if __name__ == '__main__':
     '''
     make_pycfsr2frc_one-hourly
 
-    Prepare six-hourly interannual ROMS surface forcing with, e.g., CFSv2 data (ds094.0) from
+    Prepare one-hourly interannual ROMS surface forcing with, e.g., CFSv2 data (ds094.0) from
     
       http://rda.ucar.edu/pub/cfsr.html
       
@@ -837,16 +837,16 @@ if __name__ == '__main__':
     #day_zero = '20140101' # string with format YYYYMMDDHH
     
     # Modify filename
-    if '_6hr' not in frc_filename:
+    if '_1hr' not in frc_filename:
         frc_filename = frc_filename.replace('.nc', '_1hr.nc')
     
     
     # True if the frc file being prepared is for a downscaled simulation
-    downscaled = False
-    if downscaled:
+    #downscaled = False
+    #if downscaled:
         # Point to parent directory, where make_pycfsr2frc_one-hourly expects to find 
         # start_date.mat (created by set_ROMS_interannual_start.py)
-        par_dir = '/marula/emason/runs2013/na_7pt5km_intann_5day/'
+        #par_dir = '/marula/emason/runs2013/na_7pt5km_intann_5day/'
         #par_dir = '/marula/emason/runs2012/MedSea5_intann_monthly/'
 
     
@@ -984,7 +984,7 @@ if __name__ == '__main__':
     numrec = None
     romsgrd = RomsGrid(''.join((roms_dir, roms_grd)), sigma_params, 'ROMS')
     romsgrd.create_frc_nc(''.join((roms_dir, frc_filename)), start_date, end_date, numrec,
-                          cycle_length, 'make_pycfsr2frc_six-hourly', bulk)
+                          cycle_length, 'make_pycfsr2frc_one-hourly', bulk)
     romsgrd.make_gnom_transform().proj2gnom(ignore_land_points=True).make_kdetree()
     
 

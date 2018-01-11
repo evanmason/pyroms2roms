@@ -113,10 +113,9 @@ if __name__ == '__main__':
     #frequency = 'monthly' # NOT YET IMPLEMENTED
     
     # ROMS information
-    #directory = '/Users/emason/runs2014/na75_EOF2014/'
-    directory = '/marula/emason/runs2014/nwmed5km/'
+    directory = '/Users/emason/runs2014/na75_EOF2014/'
     
-    bry = 'bry_nwmed5km.nc'
+    bry = 'bry_NA75_SODA_2.1.6_5DAY.nc'
     
     with Dataset(directory + bry) as nc:
         
@@ -164,8 +163,8 @@ if __name__ == '__main__':
                 with Dataset(directory + bry.replace('.nc', '_%s_clim.nc' %frequency), 'a') as ncnew:
                     
                     ncnew.createVariable(varname, ncobj.datatype, ncobj.dimensions)
-                    ncnew.variables[varname].setncattr('long_name', ncobj.getncattr('long_name'))
-                    ncnew.variables[varname].setncattr('units', ncobj.getncattr('units'))
+                    ncnew.setncattr('long_name', ncobj.getncattr('long_name'))
+                    ncnew.setncattr('units', ncobj.getncattr('units'))
                     ncnew.variables[varname][:] = vartmp.T
                 
                 

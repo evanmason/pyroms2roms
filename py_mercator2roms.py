@@ -189,8 +189,8 @@ class MercatorData (RomsData):
         except Exception: # triggered when all points are masked
             _mask = np.ones(self.read_nc(self.varname, indices=indices).shape)
         _mask = np.asarray(_mask, dtype=np.int)
-        _mask *= -1.
-        _mask += 1.
+        _mask *= -1
+        _mask += 1
         return _mask
     
         
@@ -215,7 +215,7 @@ class MercatorData (RomsData):
         _3dshp = (self._depths.size, self._lon.shape[0], self._lon.shape[1])
         #print _3dshp
         self._maskr3d = np.empty(_3dshp)
-        for k in np.arange(self._depths.size):
+        for k in xrange(self._depths.size):
             self._maskr3d[k] = self._get_maskr(k=k)
         return self
         
@@ -243,13 +243,13 @@ class MercatorData (RomsData):
         ang_s[ang_s < -np.pi] = ang_s[ang_s <- np.pi] + np.pi
 
         self._angle[:,1:-1] = ang_s
-        self._angle[:,0]    = self._angle[:,1]
-        self._angle[:,-1]   = self._angle[:,-2]
+        self._angle[:,0] = self._angle[:,1]
+        self._angle[:,-1] = self._angle[:,-2]
         return self
     
     
     def get_variable(self, date):
-        ind = np.nonzero(self._time_count == date)[0]
+        ind = (self._time_count == date).nonzero()[0][0]
         #print 'ind', ind
         try:
             with netcdf.Dataset(self.romsfile[ind]) as nc:
@@ -347,7 +347,7 @@ class MercatorData (RomsData):
     def get_fillmask_cofs(self):
         if '3D' in self.dimtype:
             self.fillmask_cof_tmp = []
-            for k in np.arange(self._depths.size):
+            for k in xrange(self._depths.size):
                 try:
                     self.get_fillmask_cof(self.maskr3d()[k])
                     self.fillmask_cof_tmp.append(self.fillmask_cof)
@@ -389,7 +389,7 @@ class MercatorData (RomsData):
         Order:  call after self.get_fillmask_cof()
         '''
         if '3D' in self.dimtype:
-            for k in np.arange(len(self.fillmask_cof)):
+            for k in xrange(len(self.fillmask_cof)):
                 if self.fillmask_cof[k] is not None:
                     dist, iquery, igood, ibad = self.fillmask_cof[k]
                     #print dist, iquery, igood, ibad
@@ -405,7 +405,7 @@ class MercatorData (RomsData):
     
     
     def _check_and_fix_deep_levels(self):
-        for k in np.arange(self._depths.size):
+        for k in xrange(self._depths.size):
             if np.sum(self.maskr3d()[k]) == 0:
                 self.datain[k] = self.datain[k-1]
         return self
@@ -509,7 +509,7 @@ class MercatorData (RomsData):
         #return sum_baroclinic
         
         
-    #def set_barotropic(self): #, open_boundary):
+    #def set_barotropic(self): #, boundary):
         #'''
         #'''
         #self.barotropic = self._get_barotropic_velocity(self.dataout, self.romsgrd.scoord2dz())
@@ -605,7 +605,8 @@ if __name__ == '__main__':
     # Mercator information
     #mercator_dir = '/marula/emason/data/mercator/nea_daily/'
     #mercator_dir = '/marula/emason/data/mercator/nwmed/ORCA12/'
-    mercator_dir = '/marula/emason/data/IBI_daily/'
+    #mercator_dir = '/marula/emason/data/IBI_daily/'
+    mercator_dir = '/data_cmems/ibi_phys005001b/'
     
 
     # Child ROMS information
@@ -618,14 +619,16 @@ if __name__ == '__main__':
     #roms_dir = '/Users/emason/runs2009/na_2009_7pt5/'
     #roms_dir     = '/marula/emason/runs2014/NWMED2/'
     #roms_dir     = '/marula/emason/runs2014/AlbSea175/'
-    roms_dir     = '/marula/emason/runs2015/AlbSea500/'
+    #roms_dir     = '/marula/emason/runs2015/AlbSea500/'
+    roms_dir     = '/marula/emason/runs2016/meddies/'
     
     #roms_grd     = 'roms_grd_NA2009_7pt5km.nc'
     #roms_grd     = 'grd_MedCan5.nc'
     #roms_grd = 'roms_grd_NA2009_7pt5km.nc'
     #roms_grd = 'grd_nwmed_2km.nc'
     #roms_grd = 'grd_AlbSea175.nc'
-    roms_grd = 'grd_AlbSea500.nc'
+    #roms_grd = 'grd_AlbSea500.nc'
+    roms_grd = 'grd_meddies_1km.nc'
 
     if 'roms_grd_NA2009_7pt5km.nc' in roms_grd:
         sigma_params = dict(theta_s=6, theta_b=0, hc=120, N=32)
@@ -658,10 +661,23 @@ if __name__ == '__main__':
         end_date   = '20140602'
         day_zero = '20140101'
         obc_dict = dict(south=0, east=1, north=1, west=1) # 1=open, 0=closed
+
+    elif 'grd_meddies_1km.nc' in roms_grd:
+        sigma_params = dict(theta_s=7, theta_b=6, hc=300, N=50)
+        #ini_filename = 'ini_meddies_ecco_198501.nc'
+        #bry_filename = 'bry_meddies_IBI_4r1M_20160120.nc'
+        #bry_filename = 'bry_meddies_IBI_3r1M_20130422.nc'
+        bry_filename = 'bry_meddies_IBI_2r1M_20120109.nc'
+        #bry_filename = 'bry_meddies_IBI_1rM_20120109.nc'
+
+        #ini_date = '20131130'
+        #start_date, end_date, day_zero = '20130422', '20140413', '20130422'
+        start_date, end_date, day_zero = '20120109', '20130421', '20120109'
+        #start_date, end_date, day_zero = '20111231', '20120108', '20111231'
+        obc_dict = dict(south=1, east=1, north=1, west=1) # 1=open, 0=closed
     
     else:
-        print 'No sigma params defined for grid: %s' %roms_grd
-        raise Exception
+        raise Exception('No sigma params defined for grid: %s' % roms_grd)
     
     # Child ROMS boundary file information
     bry_cycle = 0.     # days, 0 means no cycle
@@ -681,11 +697,22 @@ if __name__ == '__main__':
         to_be_done
         balldist = 50000. # meters
     
-    elif 'IBI_daily' in mercator_dir:
+    elif 'IBI_daily' in mercator_dir or 'ibi' in mercator_dir:
         print 'Warning: check version numbers in filenames'
-        mercator_ssh_files = sorted(glob.glob(mercator_dir + 'pde_ibi36v?r1_ibisr_01dav_*_HC01.nc'))
-        mercator_temp_files =  mercator_salt_files =  mercator_u_files =  mercator_v_files = mercator_ssh_files
-        balldist = 60000. # meters
+        #mercator_ssh_files = glob.glob(mercator_dir + 'pde_ibi36v?r1_ibisr_01dav_*_HC01.nc')
+        #mercator_ssh_files = glob.glob(mercator_dir +
+                                       #'CMEMS_4r1M_IBI_PHY_NRT_PdE_01dav_????????_????????_R*_HC01.nc')
+        #mercator_ssh_files = glob.glob(mercator_dir +
+                                       #'CMEMS_3r1M_IBI_PHY_NRT_PdE_01dav_????????_????????_R*_HC01.nc')
+        mercator_ssh_files = glob.glob(mercator_dir +
+                                       'CMEMS_2r1M_IBI_PHY_NRT_PdE_01dav_????????_????????_R*_HC01.nc')
+        #mercator_ssh_files = glob.glob(mercator_dir +
+                                       #'CMEMS_1r1M_IBI_PHY_NRT_PdE_01dav_????????_????????_R*_HC01.nc')
+        mercator_temp_files = \
+        mercator_salt_files = \
+        mercator_u_files = \
+        mercator_v_files = sorted(mercator_ssh_files)
+        balldist = 20000. # meters
     #aaaaaa
 
     #_END USER DEFINED VARIABLES_______________________________________
@@ -697,7 +724,7 @@ if __name__ == '__main__':
     
     fillval = 9999.
 
-    if 'IBI_daily' in mercator_dir:
+    if 'IBI_daily' in mercator_dir or 'ibi' in mercator_dir:
         k2c = -273.15
     
     day_zero = datetime(int(day_zero[:4]), int(day_zero[4:6]), int(day_zero[6:]))
@@ -716,13 +743,7 @@ if __name__ == '__main__':
                                     np.int(end_date[6:8]),
                                     np.int(end_date[8:]))
     
-    # Number of records at daily frequency
-    #delta = plt.datetime.timedelta(days=1)
-    #numrec = plt.drange(dtstrdt, dtenddt, delta).size + 1
-
     dtstr, dtend = plt.date2num(dtstrdt), plt.date2num(dtenddt)
-    #time_array = np.arange(plt.date2num(dtstrdt),
-                           #plt.date2num(dtenddt) + 1, 1)
 
     # Set up a RomsGrid object
     romsgrd = RomsGrid(''.join((roms_dir, roms_grd)), sigma_params, 'ROMS')
@@ -733,18 +754,18 @@ if __name__ == '__main__':
     
     # Get surface areas of open boundaries
     chd_bry_surface_areas = []
-    for open_boundary, flag in zip(obc_dict.keys(), obc_dict.values()):
+    for boundary, is_open in zip(obc_dict.keys(), obc_dict.values()):
         
-        if 'west' in open_boundary and flag:
+        if 'west' in boundary and is_open:
             chd_bry_surface_areas.append(romsgrd.area_west.sum(axis=0) * romsgrd.maskr_west)
         
-        elif 'east' in open_boundary and flag:
+        elif 'east' in boundary and is_open:
             chd_bry_surface_areas.append(romsgrd.area_east.sum(axis=0) * romsgrd.maskr_east)
         
-        elif 'south' in open_boundary and flag:
+        elif 'south' in boundary and is_open:
             chd_bry_surface_areas.append(romsgrd.area_south.sum(axis=0) * romsgrd.maskr_south)
         
-        elif 'north' in open_boundary and flag:
+        elif 'north' in boundary and is_open:
             chd_bry_surface_areas.append(romsgrd.area_north.sum(axis=0) * romsgrd.maskr_north)
     
     # Get total surface of open boundaries
@@ -761,13 +782,9 @@ if __name__ == '__main__':
                          U = mercator_u_files)
     
     
-    #mercator_vars = dict(SALT = mercator_salt_files)
-    
-    #mercator_vars = dict(TEMP = mercator_temp_files)
-    
     for mercator_var, mercator_files in zip(mercator_vars.keys(), mercator_vars.values()):
         
-        print '\nProcessing variable *%s*' %mercator_var
+        print '\nProcessing variable *%s*' % mercator_var
         proceed = False
         
         
@@ -800,30 +817,30 @@ if __name__ == '__main__':
             mercator_dates = np.arange(mercator_date_start, mercator_date_end + 24, 24)
             mercator_dates /= 24.
         else:
-            Exception # deal_with_when_a_problem
+            raise Exception('deal_with_when_a_problem')
         
         mercator_dates += mercator_time_origin
         mercator_dates = mercator_dates[np.logical_and(mercator_dates >= dtstr,
                                                        mercator_dates <= dtend)]
         
         
-        for open_boundary, flag in zip(obc_dict.keys(), obc_dict.values()):
+        for boundary, is_open in zip(obc_dict.keys(), obc_dict.values()):
             
-            print '\n--- processing %sern boundary' %open_boundary
+            print '\n--- processing %sern boundary' % boundary
             
-            if 'west' in open_boundary and flag:
+            if 'west' in boundary and is_open:
                 romsgrd_at_bry = WestGrid(''.join((roms_dir, roms_grd)), sigma_params, 'ROMS')
                 proceed = True
             
-            elif 'north' in open_boundary and flag:
+            elif 'north' in boundary and is_open:
                 romsgrd_at_bry = NorthGrid(''.join((roms_dir, roms_grd)), sigma_params, 'ROMS')
                 proceed = True
             
-            elif 'east' in open_boundary and flag:
+            elif 'east' in boundary and is_open:
                 romsgrd_at_bry = EastGrid(''.join((roms_dir, roms_grd)), sigma_params, 'ROMS')
                 proceed = True
             
-            elif 'south' in open_boundary and flag:
+            elif 'south' in boundary and is_open:
                 romsgrd_at_bry = SouthGrid(''.join((roms_dir, roms_grd)), sigma_params, 'ROMS')
                 proceed = True
             
@@ -836,14 +853,10 @@ if __name__ == '__main__':
                 mercator = MercatorData(mercator_files, 'Mercator', mercator_var, romsgrd_at_bry)
                 mercator, proceed = prepare_mercator(mercator, balldist)
                 
-                #if 'east' in open_boundary: aaaaaaaaa
-                
-                
                 if 'U' in mercator_var:
                     mercator_v = MercatorData(mercator_v_files, 'Mercator', 'V', romsgrd_at_bry,
                                          i0=mercator.i0, i1=mercator.i1, j0=mercator.j0, j1=mercator.j1)
                     mercator_v, junk = prepare_mercator(mercator_v, balldist)
-                 
                 
                 tind = 0     # index for writing records to bry file
                 
@@ -874,7 +887,7 @@ if __name__ == '__main__':
                         for k in np.arange(romsgrd.N).astype(np.int):
                             u, v = mercator.dataout[k], mercator_v.dataout[k]
                             mercator.dataout[k], mercator_v.dataout[k] = romsgrd.rotate(u, v, sign=1,
-                                                                     ob=open_boundary)
+                                                                     ob=boundary)
                         
                         mercator.set_barotropic()
                         mercator_v.set_barotropic()
@@ -889,42 +902,47 @@ if __name__ == '__main__':
                             
                         if mercator.vartype in 'U':
                             
-                            if open_boundary in ('north', 'south'):
-                                u = romsgrd.half_interp(mercator.dataout[:,:-1], mercator.dataout[:,1:])
-                                ubar = romsgrd.half_interp(mercator.barotropic[:-1], mercator.barotropic[1:])
-                                nc.variables['u_%s' %open_boundary][tind] = u
-                                nc.variables['ubar_%s' %open_boundary][tind] = ubar
-                                nc.variables['v_%s' %open_boundary][tind] = mercator_v.dataout
-                                nc.variables['vbar_%s' %open_boundary][tind] = mercator_v.barotropic
+                            if boundary in ('north', 'south'):
+                                u = romsgrd.half_interp(mercator.dataout[:,:-1],
+                                                        mercator.dataout[:,1:])
+                                ubar = romsgrd.half_interp(mercator.barotropic[:-1],
+                                                           mercator.barotropic[1:])
+                                nc.variables['u_%s' % boundary][tind] = u
+                                nc.variables['ubar_%s' % boundary][tind] = ubar
+                                nc.variables['v_%s' %boundary][tind] = mercator_v.dataout
+                                nc.variables['vbar_%s' % boundary][tind] = mercator_v.barotropic
                             
-                            elif open_boundary in ('east', 'west'):
-                                v = romsgrd.half_interp(mercator_v.dataout[:,:-1], mercator_v.dataout[:,1:])
-                                vbar = romsgrd.half_interp(mercator_v.barotropic[:-1], mercator_v.barotropic[1:])
-                                nc.variables['v_%s' %open_boundary][tind] = v
-                                nc.variables['vbar_%s' %open_boundary][tind] = vbar
-                                nc.variables['u_%s' %open_boundary][tind] = mercator.dataout
-                                nc.variables['ubar_%s' %open_boundary][tind] = mercator.barotropic
+                            elif boundary in ('east', 'west'):
+                                v = romsgrd.half_interp(mercator_v.dataout[:,:-1],
+                                                        mercator_v.dataout[:,1:])
+                                vbar = romsgrd.half_interp(mercator_v.barotropic[:-1],
+                                                           mercator_v.barotropic[1:])
+                                nc.variables['v_%s' % boundary][tind] = v
+                                nc.variables['vbar_%s' % boundary][tind] = vbar
+                                nc.variables['u_%s' % boundary][tind] = mercator.dataout
+                                nc.variables['ubar_%s' % boundary][tind] = mercator.barotropic
                             
                             else:
-                                raise Exception
+                                raise Exception('Unknown boundary: %s' % boundary)
                         
                         elif mercator.vartype in 'SSH':
                             
-                            nc.variables['zeta_%s' %open_boundary][tind] = mercator.dataout
+                            nc.variables['zeta_%s' % boundary][tind] = mercator.dataout
                             nc.variables['bry_time'][tind] = np.float(dtnum)
             
-                        elif mercator.vartype in 'TEMP' and 'k2c' in locals():
+                        elif mercator.vartype in 'TEMP':
                             
-                            mercator.dataout += k2c
+                            if (mercator.dataout > 100.).any():
+                                mercator.dataout += k2c # Kelvin to Celcius
                             #mercator.dataout *= romsgrd.mask3d()
-                            nc.variables['temp_%s' %open_boundary][tind] = mercator.dataout
+                            nc.variables['temp_%s' % boundary][tind] = mercator.dataout
                         
                         else:
                             
-                            varname = mercator.vartype.lower() + '_%s' %open_boundary
+                            varname = mercator.vartype.lower() + '_%s' % boundary
                             nc.variables[varname][tind] = mercator.dataout
                             
-                        #if 'east' in open_boundary:
+                        #if 'east' in boundary:
 			    #print plt.num2date(dt)
 			    #plt.figure(99)
 			    #plt.subplot(121)
@@ -948,26 +966,26 @@ if __name__ == '__main__':
         bry_times = nc.variables['bry_time'][:]
         boundarylist = []
             
-        for bry_ind in np.arange(bry_times.size):
+        for bry_ind in xrange(bry_times.size):
             
             uvbarlist = []
             
-            for open_boundary, flag in zip(obc_dict.keys(), obc_dict.values()):
+            for boundary, is_open in zip(obc_dict.keys(), obc_dict.values()):
             
-                if 'west' in open_boundary and flag:
+                if 'west' in boundary and is_open:
                     uvbarlist.append(nc.variables['ubar_west'][bry_ind])
                     
-                elif 'east' in open_boundary and flag:
+                elif 'east' in boundary and is_open:
                     uvbarlist.append(nc.variables['ubar_east'][bry_ind])
                 
-                elif 'north' in open_boundary and flag:
+                elif 'north' in boundary and is_open:
                     uvbarlist.append(nc.variables['vbar_north'][bry_ind])
                 
-                elif 'south' in open_boundary and flag:
+                elif 'south' in boundary and is_open:
                     uvbarlist.append(nc.variables['vbar_south'][bry_ind])
                     
-                if bry_ind == 0 and flag:
-                    boundarylist.append(open_boundary)
+                if bry_ind == 0 and is_open:
+                    boundarylist.append(boundary)
                     
             fc = bry_flux_corr(boundarylist,
                                chd_bry_surface_areas,
@@ -976,21 +994,21 @@ if __name__ == '__main__':
             
             print '------ barotropic velocity correction:', fc, 'm/s'
             
-            for open_boundary, flag in zip(obc_dict.keys(), obc_dict.values()):
+            for boundary, is_open in zip(obc_dict.keys(), obc_dict.values()):
                             
-                if 'west' in open_boundary and flag:
+                if 'west' in boundary and is_open:
                     nc.variables['u_west'][bry_ind] -= fc
                     nc.variables['ubar_west'][bry_ind] -= fc
                                 
-                elif 'east' in open_boundary and flag:
+                elif 'east' in boundary and is_open:
                     nc.variables['u_east'][bry_ind] += fc
                     nc.variables['ubar_east'][bry_ind] += fc
                     
-                elif 'north' in open_boundary and flag:
+                elif 'north' in boundary and is_open:
                     nc.variables['v_north'][bry_ind] += fc
                     nc.variables['vbar_north'][bry_ind] += fc
                             
-                elif 'south' in open_boundary and flag:
+                elif 'south' in boundary and is_open:
                     nc.variables['v_south'][bry_ind] -= fc
                     nc.variables['vbar_south'][bry_ind] -= fc
     

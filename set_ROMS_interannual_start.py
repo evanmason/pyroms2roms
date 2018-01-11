@@ -19,7 +19,7 @@ import numpy as np
 # Make a list of directories
 directories = ['/marula/emason/runs2012/MedSea5_intann_monthly/',
                '/marula/emason/runs2013/na_7pt5km_intann_5day/',
-	       '/marula/emason/runs2014/NWMED2_unstable/']
+	           '/marula/emason/runs2014/NWMED2_unstable/']
 
 # Make a list of corresponding start dates
 starts = [np.array([1985, 1, 1, 0]),

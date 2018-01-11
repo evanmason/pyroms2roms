@@ -102,10 +102,21 @@ class horizInterpRbs(rbs):
     def rbs_interp(self, romslon, romslat):
         return self.coeffs.ev(romslat, romslon)
 
+class bcolors:
+    """
+    See http://stackoverflow.com/questions/287871/print-in-terminal-with-colors-using-python
+    """
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 
-
-class ROMS (object):
+class ROMS(object):
     '''
     ROMS class
     '''
@@ -114,7 +125,9 @@ class ROMS (object):
         Initialise the ROMS object
         '''
         thetype = str(type(self)).split('.')[-1].split("'")[0]
-        print '--- instantiating *%s*' % thetype, datafile
+        msg = '--- instantiating *%s*, %s' % (thetype, datafile)
+	#with bcolors.FAIL as col_:
+        print(bcolors.OKGREEN + msg + bcolors.ENDC)
         self.romsfile = datafile
         self.indices = '[self.j0:self.j1, self.i0:self.i1]'
         self.i0 = 0
@@ -248,35 +261,33 @@ class ROMS (object):
     def list_of_variables(self):
         '''
         '''
+        datafile = self.romsfile
+        if isinstance(datafile, list):
+            datafile = datafile[0]
         not_done = True
-        try:
-            while not_done:
-                try:
-                    with netcdf.Dataset(self.romsfile) as nc:
-                        not_done = False
-                        keys = nc.variables.keys()
-                except:
-                    time.sleep(0.5)
-            return keys
-        # NOTE: this below may break at some point; not_done clause not added
-        except Exception:
+        while not_done:
             try:
-                with netcdf.Dataset(self.romsfile[0]) as nc:
-                    return nc.variables.keys()
-            except Exception:
-                raise Exception
-        return self
+                #print datafile
+                with netcdf.Dataset(datafile) as nc:
+                    not_done = False
+                    keys = nc.variables.keys()
+            except:
+                #print 'sleeping'
+                time.sleep(0.5)
+        return keys
 
 
-    def half_interp(self, h_one, h_two):
+
+    @staticmethod
+    def half_interp(h_one, h_two):
         '''
         Speed up frequent operations of type 0.5 * (arr[:-1] + arr[1:])
         '''
         return ne.evaluate('0.5 * (h_one + h_two)')
 
 
-
-    def rho2u_2d(self, rho_in):
+    @staticmethod
+    def rho2u_2d(rho_in):
         '''
         Convert a 2D field at rho points to a field at u points
         '''
@@ -289,8 +300,8 @@ class ROMS (object):
         Mshp, Lshp = rho_in.shape
         return _r2u(rho_in, Lshp)
 
-
-    def rho2u_3d(self, rho_in):
+    @staticmethod
+    def rho2u_3d(rho_in):
         '''
         Convert a 3D field at rho points to a field at u points
         Calls rho2u_2d
@@ -298,14 +309,14 @@ class ROMS (object):
         def levloop(rho_in):
             Nlevs, Mshp, Lshp = rho_in.shape
             rho_out = np.zeros((Nlevs, Mshp, Lshp-1))
-            for k in np.arange(Nlevs):
-                 rho_out[k] = self.rho2u_2d(rho_in[k])
+            for k in xrange(Nlevs):
+                 rho_out[k] = ROMS.rho2u_2d(rho_in[k])
             return rho_out
         assert rho_in.ndim == 3, 'rho_in must be 3d'
         return levloop(rho_in)
 
-
-    def rho2v_2d(self, rho_in):
+    @staticmethod
+    def rho2v_2d(rho_in):
         '''
         Convert a 2D field at rho points to a field at v points
         '''
@@ -318,8 +329,8 @@ class ROMS (object):
         Mshp, Lshp = rho_in.shape
         return _r2v(rho_in, Mshp)
 
-
-    def rho2v_3d(self, rho_in):
+    @staticmethod
+    def rho2v_3d(rho_in):
         '''
         Convert a 3D field at rho points to a field at v points
         Calls rho2v_2d
@@ -327,15 +338,15 @@ class ROMS (object):
         def levloop(rho_in):
             Nlevs, Mshp, Lshp = rho_in.shape
             rho_out = np.zeros((Nlevs, Mshp-1, Lshp))
-            for k in np.arange(Nlevs):
-                 rho_out[k] = self.rho2v_2d(rho_in[k])
+            for k in xrange(Nlevs):
+                 rho_out[k] = ROMS.rho2v_2d(rho_in[k])
             return rho_out
         assert rho_in.ndim == 3, 'rho_in must be 3d'
         return levloop(rho_in)
 
 
-
-    def u2rho_2d(self, u_in):
+    @staticmethod
+    def u2rho_2d(u_in):
         '''
         Convert a 2D field at u points to a field at rho points
         '''
@@ -352,8 +363,8 @@ class ROMS (object):
         Mp, Lp = u_in.shape
         return _uu2ur(u_in, Mp, Lp+1)
 
-
-    def u2rho_3d(self, u_in):
+    @staticmethod
+    def u2rho_3d(u_in):
         '''
         Convert a 3D field at u points to a field at rho points
         Calls u2rho_2d
@@ -361,14 +372,14 @@ class ROMS (object):
         def _levloop(u_in):
             Nlevs, Mshp, Lshp = u_in.shape
             u_out = np.zeros((Nlevs, Mshp, Lshp+1))
-            for Nlev in np.arange(Nlevs):
-                u_out[Nlev] = self.u2rho_2d(u_in[Nlev])
+            for Nlev in xrange(Nlevs):
+                u_out[Nlev] = ROMS.u2rho_2d(u_in[Nlev])
             return u_out
         assert u_in.ndim == 3, 'u_in must be 3d'
         return _levloop(u_in)
 
-
-    def v2rho_2d(self, v_in):
+    @staticmethod
+    def v2rho_2d(v_in):
         '''
         Convert a 2D field at v points to a field at rho points
         '''
@@ -385,8 +396,8 @@ class ROMS (object):
         Mp, Lp = v_in.shape
         return _vv2vr(v_in, Mp+1, Lp)
 
-
-    def v2rho_3d(self, v_in):
+    @staticmethod
+    def v2rho_3d(v_in):
         '''
         Convert a 3D field at v points to a field at rho points
         Calls v2rho_2d
@@ -394,8 +405,8 @@ class ROMS (object):
         def levloop(v_in):
             Nlevs, Mshp, Lshp = v_in.shape
             v_out = np.zeros((Nlevs, Mshp+1, Lshp))
-            for Nlev in np.arange(Nlevs):
-                v_out[Nlev] = self.v2rho_2d(v_in[Nlev])
+            for Nlev in xrange(Nlevs):
+                v_out[Nlev] = ROMS.v2rho_2d(v_in[Nlev])
             return v_out
         assert v_in.ndim == 3, 'v_in must be 3d'
         return levloop(v_in)
@@ -474,22 +485,22 @@ class ROMS (object):
 
         # Create a normalised weight, the nearest points are weighted as 1.
         #   Points greater than one are then set to zero
-        weight = dist / (dist.min(axis=1)[:,np.newaxis] * np.ones_like(dist))
-        np.place(weight, weight > 1., 0.)
+        weight = dist / (dist.min(axis=1)[:, np.newaxis] * np.ones_like(dist))
+        weight[weight > 1.] = 0.
 
         # Multiply the queried good points by the weight, selecting only
         #  the nearest points.  Divide by the number of nearest points
         #  to get average
         xfill = weight * x[igood[:,0][iquery], igood[:,1][iquery]]
-        xfill = (xfill / weight.sum(axis=1)[:,np.newaxis]).sum(axis=1)
+        xfill = (xfill / weight.sum(axis=1)[:, np.newaxis]).sum(axis=1)
 
         # Place average of nearest good points, xfill, into bad point locations
         x[ibad[:,0], ibad[:,1]] = xfill
 
-        if isinstance(weights, bool):
-            return x, np.array([dist, iquery, igood, ibad])
-        else:
+        if not isinstance(weights, bool):
             return x
+        else:
+            return x, np.array([dist, iquery, igood, ibad])
 
 
     def proj2gnom(self, ignore_land_points=False, gtype='rho', index_str=None, M=None):
@@ -689,6 +700,7 @@ class RomsGrid (ROMS):
         self.theta_b = np.double(sigma_params['theta_b'])
         self.hc = np.double(sigma_params['hc'])
         self.N = np.double(sigma_params['N'])
+        self.sc_r = None
 
 
     def lon(self):   return self._lon[self.j0:self.j1, self.i0:self.i1]
@@ -715,12 +727,15 @@ class RomsGrid (ROMS):
         try:
             self._umask = self.read_nc('mask_u')
         except:
-            Mp, Lp  = self.maskr().shape
-            M       = Mp - 1
-            L       = Lp - 1
-            self._umask   = self.maskr()[:, :L] * self.maskr()[:, 1:Lp]
-            self._vmask   = self.maskr()[:M]   * self.maskr()[1:Mp]
-            self._pmask = self._umask[:M] * self._umask[1:Mp]
+            #Mp, Lp = self.maskr().shape
+            #print 'Mp',Mp,'  Lp',Lp
+            #Mp -= 1
+            #Lp -= 1
+            #M = Mp - 1
+            #L = Lp - 1
+            self._umask = self.maskr()[:, :-1] * self.maskr()[:, 1:]
+            self._vmask = self.maskr()[:-1]   * self.maskr()[1:]
+            self._pmask = self._umask[:-1] * self._umask[1:]
         else:
             self._vmask = self.read_nc('mask_v')
             self._pmask = self.read_nc('mask_psi')
@@ -728,14 +743,28 @@ class RomsGrid (ROMS):
 
 
     def umask(self):
-        return self._umask[self.j0:self.j1, self.i0:self.i1]
+        return self._umask
+        # Not sure about all below (29/12/2017) BUT indices needed
+        # for tiled grids...
+        # added '-1' 1/9/2016 cos problem in py_mercator_ini line ~385
+        '''try:
+            return self._umask[self.j0:self.j1, self.i0:self.i1-1]
+        except:
+            return self._umask[self.j0:self.j1, self.i0:-2]'''
 
 
     def vmask(self):
-        return self._vmask[self.j0:self.j1, self.i0:self.i1]
+        return self._vmask
+        # Not sure about all below (29/12/2017)
+        # added '-1' 1/9/2016 cos problem in py_mercator_ini line ~385
+        '''try:
+            return self._vmask[self.j0:self.j1-1, self.i0:self.i1]
+        except:
+            return self._vmask[self.j0:-2, self.i0:self.i1]'''
 
 
     def pmask(self):
+        print 'fix me'
         return self._pmask
 
 
@@ -809,43 +838,49 @@ class RomsGrid (ROMS):
             '''
             Allows use of theta_b > 0 (July 2009)
             '''
+            one64 = np.float64(1)
             if self.theta_s > 0.:
-                csrf = ((1. - np.cosh(self.theta_s * sc)) /
-                        (np.cosh(self.theta_s) - 1.))
+                csrf = ((one64 - np.cosh(self.theta_s * sc))
+                           / (np.cosh(self.theta_s) - one64))
             else:
-                csrf = -sc**2
-            sc1 = csrf + 1.
+                csrf = -sc ** 2
+            sc1 = csrf + one64
             if self.theta_b > 0.:
-                Cs = ((np.exp(self.theta_b * sc1) - 1.) /
-                      (np.exp(self.theta_b) - 1.) - 1.)
+                Cs = ((np.exp(self.theta_b * sc1) - one64)
+                    / (np.exp(self.theta_b) - one64) - one64)
             else:
                 Cs = csrf
             return Cs
         #
-        try: self.scoord
-        except: self.scoord = 'new2008'
-        N = self.N.copy()
+        try:
+            self.scoord
+        except:
+            self.scoord = 'new2008'
+        N = np.float64(self.N.copy())
         cff1 = 1. / np.sinh(self.theta_s)
         cff2 = 0.5 / np.tanh(0.5 * self.theta_s)
-        sc_w = np.arange(-1., 1. / N, 1. / N, dtype=np.float64)
-        sc_r = 0.5 * (sc_w[1:] + sc_w[:-1])
+        sc_w = (np.arange(N + 1, dtype=np.float64) - N) / N
+        sc_r = ((np.arange(1, N + 1, dtype=np.float64)) - N - 0.5) / N
+        
+        #sc_w = np.arange(-1., 1. / N, 1. / N, dtype=np.float64)
+        #sc_r = 0.5 * (sc_w[1:] + sc_w[:-1])
+        
         if 'w' in point_type:
             sc = sc_w
             N += 1. # add a level
         else:
             sc = sc_r
-        Cs = (1. - self.theta_b) * cff1 * np.sinh(self.theta_s * sc)  \
-                 + self.theta_b * (cff2 * np.tanh(self.theta_s * (sc + 0.5)) - 0.5)
-        z  = np.empty((N,) + self.h().shape, dtype=np.float64)
+        #Cs = (1. - self.theta_b) * cff1 * np.sinh(self.theta_s * sc)  \
+                 #+ self.theta_b * (cff2 * np.tanh(self.theta_s * (sc + 0.5)) - 0.5)
+        z  = np.empty((int(N),) + self.h().shape, dtype=np.float64)
         if self.scoord in 'new2008':
             Cs = CSF(self, sc)
         if self.scoord in 'new2006' or self.scoord in 'new2008':
-            ds   = 1. / N
             hinv = 1. / (self.h() + self.hc)
-            cff_r   = self.hc * sc
-            for k in np.arange(N) + 1.:
-                cff1_r    = Cs[k-1]
-                z[k-1, :] = zeta + (zeta + self.h()) * (cff_r[k-1] + cff1_r * self.h()) * hinv
+            cff = self.hc * sc
+            cff1 = Cs
+            for k in np.arange(N, dtype=int):
+                z[k] = zeta + (zeta + self.h()) * (cff[k] + cff1[k] * self.h()) * hinv
         elif self.scoord in 'old1994':
             hinv = 1. / self.h()
             cff  = self.hc * (sc - Cs)
@@ -855,8 +890,10 @@ class RomsGrid (ROMS):
                 z0      = cff[k-1] + cff1[k-1] * self.h()
                 z[k-1, :] = z0 + zeta * (1. + z0 * hinv)
         else:
-            you_really_dont_want_to_end_up_here
-        return z.squeeze(), Cs
+            raise Exception("Unknown scoord, should be 'new2008' or 'old1994'")
+        if self.sc_r is None:
+            self.sc_r = sc_r
+        return z.squeeze(), np.float32(Cs)
 
 
     def scoord2z_r(self, zeta=0., alpha=0., beta=1.):
@@ -1070,7 +1107,7 @@ class RomsGrid (ROMS):
 
         # Interpolate parent vertical indices at parent depths
         # to child depths
-        for i in np.arange(pzr_bry.shape[1]):
+        for i in xrange(pzr_bry.shape[1]):
 
             akima = si.Akima1DInterpolator(pzr_bry[:, i], np.arange(pzr_bry.shape[0]))
             akima.extrapolate = True
@@ -1189,6 +1226,12 @@ class WestGrid(RomsGrid):
             #self._set_dz_rho_points()
             #return self._dz_rho_points
 
+    def umask(self):
+        return self.maskr().squeeze()
+
+    def vmask(self):
+        #rfield(1:M,:).*rfield(2:Mp,:)
+        return self.maskr()[0,:-1] * self.maskr()[0,1:]
 
     def dz_v(self):
         """
@@ -1235,6 +1278,13 @@ class EastGrid(RomsGrid):
 
     def h(self):
         return self.read_nc('h',  indices='[:,-1]')
+
+    def umask(self):
+        return self.maskr().squeeze()
+
+    def vmask(self):
+        #rfield(1:M,:).*rfield(2:Mp,:)
+        return self.maskr()[-1,:-1] * self.maskr()[-1,1:]
 
     def dz_rho_points(self):
         """
@@ -1291,6 +1341,12 @@ class NorthGrid(RomsGrid):
 
     def h(self):
         return self.read_nc('h',  indices='[-1]')
+
+    def umask(self):
+        return (self.maskr()[0,:-1] * self.maskr()[0,1:]).squeeze()
+
+    def vmask(self):
+        return self.maskr().squeeze()
 
     #def dz_rho_points(self):
         #"""
@@ -1356,6 +1412,13 @@ class SouthGrid(RomsGrid):
         #except Exception:
             #self._set_dz_rho_points()
             #return self._dz_rho_points
+    def umask(self):
+        return (self.maskr()[0,:-1] * self.maskr()[0,1:]).squeeze()
+
+    def vmask(self):
+        return self.maskr().squeeze()
+
+
 
     def dz_u(self):
         """
@@ -1453,40 +1516,41 @@ class RomsData (ROMS):
         nc.createDimension('one',      1)
 
         # Create the variables and write...
-        nc.createVariable('theta_s', 'f', ('one'), zlib=True)
+        nc.createVariable('theta_s', 'f', ('one'))
         nc.variables['theta_s'].long_name = 'S-coordinate surface control parameter'
         nc.variables['theta_s'].units     = 'nondimensional'
         nc.variables['theta_s'][:]        = grdobj.theta_s
 
-        nc.createVariable('theta_b', 'f', ('one'), zlib=True)
+        nc.createVariable('theta_b', 'f', ('one'))
         nc.variables['theta_b'].long_name = 'S-coordinate bottom control parameter'
         nc.variables['theta_b'].units     = 'nondimensional'
         nc.variables['theta_b'][:]        = grdobj.theta_b
 
-        nc.createVariable('Tcline', 'f', ('one'), zlib=True)
+        nc.createVariable('Tcline', 'f', ('one'))
         nc.variables['Tcline'].long_name  = 'S-coordinate surface/bottom layer width'
         nc.variables['Tcline'].units      = 'meters'
         nc.variables['Tcline'][:]         = grdobj.hc
 
-        nc.createVariable('hc', 'f', ('one'), zlib=True)
+        nc.createVariable('hc', 'f', ('one'))
         nc.variables['hc'].long_name      = 'S-coordinate parameter, critical depth'
         nc.variables['hc'].units          = 'meters'
         nc.variables['hc'][:]             = grdobj.hc
 
-        nc.createVariable('sc_r', 'f8', ('s_rho'), zlib=True)
+        nc.createVariable('sc_r', 'f8', ('s_rho'))
         nc.variables['sc_r'].long_name    = 'S-coordinate at RHO-points'
         nc.variables['sc_r'].units        = 'nondimensional'
         nc.variables['sc_r'].valid_min    = -1.
         nc.variables['sc_r'].valid_max    = 0.
+        nc.variables['sc_r'][:]           = grdobj.sc_r
 
-        nc.createVariable('Cs_r', 'f8', ('s_rho'), zlib=True)
+        nc.createVariable('Cs_r', 'f8', ('s_rho'))
         nc.variables['Cs_r'].long_name    = 'S-coordinate stretching curves at RHO-points'
         nc.variables['Cs_r'].units        = 'nondimensional'
         nc.variables['Cs_r'].valid_min    = -1.
         nc.variables['Cs_r'].valid_max    = 0.
         nc.variables['Cs_r'][:]           = grdobj.Cs_r()
 
-        nc.createVariable('Cs_w', 'f8', ('s_w'), zlib=True)
+        nc.createVariable('Cs_w', 'f8', ('s_w'))
         nc.variables['Cs_w'].long_name    = 'S-coordinate stretching curves at w-points'
         nc.variables['Cs_w'].units        = 'nondimensional'
         nc.variables['Cs_w'].valid_min    = -1.
@@ -1755,22 +1819,25 @@ if __name__ == '__main__':
     #par_dir     = '/shared/emason/runs2009/na_2009_7pt5km/'
     #par_dir     = '/marula/emason/runs2009/na_2009_7pt5km/'
     #par_dir     = '/marula/emason/runs2009/cb_2009_3km_42/'
-    par_dir     = '/marula/emason/runs2009/gc_2009_1km_60/'
+    #par_dir     = '/marula/emason/runs2009/gc_2009_1km_60/'
     #par_grd     = 'roms_grd_NA2009_7pt5km.nc'
     #par_dir     = '/marula/emason/runs2012/na_7pt5km/'
     #par_dir     = '/marula/emason/runs2013/na_7pt5km_intann_5day/'
     #par_grd     = 'roms_grd_NA2009_7pt5km.nc'
     #par_dir      = '/marula/emason/runs2012/MedSea5_intann_monthly/'
-    #par_dir    = '/marula/emason/runs2013/AlbSea_1pt5/'
+    par_dir    = '/marula/emason/runs2016/gc_2016_800m_50/'
 
     #par_grd    = 'grd_MedSea5.nc'
     #par_grd    = 'roms_grd_NA2009_7pt5km.nc'
     #par_grd    = 'cb_2009_3km_grd_smooth.nc'
-    par_grd     = 'gc_2009_1km_grd_smooth.nc'
+    #par_grd     = 'gc_2009_1km_grd_smooth.nc'
     #par_grd    = 'grd_AlbSea_1pt5km.nc'
+    par_grd    = 'grd_gc800m_2016.nc'
 
     if 'roms_grd_NA2009_7pt5km.nc' in par_grd:
         par_sigma_params = dict(theta_s=6, theta_b=0, hc=120, N=32)
+    elif 'grd_gc800m_2016.nc' in par_grd:
+        par_sigma_params = dict(theta_s=7, theta_b=6, hc=300, N=50)
     elif 'cb_2009_3km_grd_smooth.nc' in par_grd:
         par_sigma_params = dict(theta_s=6, theta_b=2, hc=120, N=42)
     elif 'gc_2009_1km_grd_smooth.nc' in par_grd:
@@ -1789,19 +1856,34 @@ if __name__ == '__main__':
     #chd_dir    = '/marula/emason/runs2013/cart500/'
     #chd_dir    = '/marula/emason/runs2014/canbas4/'
     #chd_dir    = '/marula/emason/runs2014/gc1km_2014/'
-    chd_dir     = '/marula/emason/runs2015/GranCan250/'
-    #chd_dir     = '/marula/emason/runs2015/GranCan250_nocoast/'
+    #chd_dir     = '/marula/emason/runs2015/GranCan250/'
+    #chd_dir     = '/marula/emason/runs2017/gc250/'
+    chd_dir     = '/marula/emason/runs2017/gc250m_extended/'
+    #chd_dir     = '/marula/emason/runs2016/gc_2016_1km_60_extended/'
 
     #chd_grd    = 'grd_AlbSea_1pt25.nc'
     #chd_grd    = 'grd_cart500.nc'
     #chd_grd    = 'grd_canbas4.nc'
     #chd_grd    = 'grd_gc1km_2014.nc'
-    chd_grd     = 'grd_gc250_coast.nc'
     #chd_grd     = 'grd_gc250.nc'
+    chd_grd     = 'grd_gc250m_extended.nc'
+    #chd_grd     = 'grd_gc1km_2016.nc'
+    #chd_grd     = 'grd_gc800m_2016.nc'
 
-    if 'some_grid.nc' in chd_grd:
-        chd_sigma_params = dict(theta_s=6, theta_b=0, hc=120, N=32)
-        bry_filename = 'bry_na75_mercator.nc'
+    if 'grd_gc1km_2016.nc' in chd_grd:
+        chd_sigma_params = dict(theta_s=7, theta_b=2, hc=300, N=60)
+        bry_filename = 'bry_gc1km_2016.nc.FULL'
+        obc_dict = dict(south=1, east=0, north=1, west=1) # 1=open, 0=closed
+
+    elif 'grd_gc800m_2016.nc' in chd_grd:
+        chd_sigma_params = dict(theta_s=7., theta_b=6, hc=300, N=50)
+        bry_filename = 'bry_gc800m_2016.nc'
+        obc_dict = dict(south=1, east=1, north=1, west=1) # 1=open, 0=closed
+
+    elif 'grd_gc250m_extended.nc' in chd_grd:
+        chd_sigma_params = dict(theta_s=7., theta_b=6, hc=300, N=50)
+        #bry_filename = 'bry_gc250m_extended.nc'
+        bry_filename = 'bry_gc250m_extended.nc.TEST'
         obc_dict = dict(south=1, east=1, north=1, west=1) # 1=open, 0=closed
 
     elif 'grd_canbas4.nc' in chd_grd:
@@ -1818,6 +1900,8 @@ if __name__ == '__main__':
         chd_sigma_params = dict(theta_s=6., theta_b=2, hc=120, N=60)
         bry_filename = 'bry_gc250_coast_Y2.nc'
         obc_dict = dict(south=1, east=1, north=1, west=1) # 1=open, 0=closed
+    else:
+        Exception('Unknown grid "%s"' % chd_grd)
 
     # Boundary file
     bry_cycle = 0     # number of days between records or, set to 0 for no cycle
@@ -1827,10 +1911,11 @@ if __name__ == '__main__':
     #bry_filename = 'bry_cart500.nc' # bry filename
     bry_type     = 'roms_avg' # parent file to read data from,
                               # usually one of 'roms_avg', 'roms_his' or 'roms_rst'
-    first_file   = '0510' # first/last avg/his file,
-    last_file    = '0630' #   e.g., '0050' gives roms_avg.0050.nc
-    first_rec    =  1     # desired record no. from first avg/his file
-    last_rec     =  30     # desired record no. from last avg/his file
+    first_file   = '0000' # first/last avg/his file,
+    last_file    = '1770' #   e.g., '0050' gives roms_avg.0050.nc
+    #last_file    = '1335'
+    first_rec    =  1    # desired record no. from first avg/his file
+    #last_rec     =  15     # desired record no. from last avg/his file
 
     roms_vars = ['zeta', 'temp', 'salt', 'u']
 
@@ -1840,7 +1925,7 @@ if __name__ == '__main__':
     extra_variables = OrderedDict()
 
 
-    balldist = 50000. # meters
+    balldist = 20000. # meters
 
 
 
@@ -1850,27 +1935,9 @@ if __name__ == '__main__':
 
     assert len(first_file) == 4, 'first_file must be a length four string'
     assert len(last_file) == 4,  'last_file must be a length four string'
+    assert first_rec > 0, 'first_rec must be greater than zero'
 
     fillval = 9999.99
-
-    # Lists of boundary labels and indices
-    #boundaries = ['south', 'east', 'north', 'west']
-    #chd_bry_indices = ['[:,0]', '[:,:,-1]', '[:,-1]', '[:,:,0]'] # note, to 3d array
-
-    ## List of standard ROMS variables for boundary forcing
-    #variables = ['temp', 'salt', 'u', 'v', 'zeta', 'ubar', 'vbar']
-
-    ## Empty lists to be filled later...
-    ## Once filled, their lengths will be == sum(obcflag)
-    #par_bry_indices = []
-    #par_bry_tris = []
-    #chd_bry_points  = []
-    #chd_bry_masks = []
-    #pzr_bry = []
-    #czr_bry = []
-    #vinterp_weights = []
-    #chd_bry_surface_areas = []
-
 
     # Initialise RomsGrid objects for both parent and child grids
     pgrd = RomsGrid(''.join((par_dir, par_grd)), par_sigma_params, 'ROMS')
@@ -1878,7 +1945,7 @@ if __name__ == '__main__':
     cgrd.set_bry_dx()
     cgrd.set_bry_maskr()
     cgrd.set_bry_areas()
-
+    
     # Activate flag for zero crossing trickery
     cgrd.check_zero_crossing()
     if cgrd.zero_crossing is True:
@@ -1930,6 +1997,8 @@ if __name__ == '__main__':
 
     for open_boundary, flag in zip(obc_dict.keys(), obc_dict.values()):
 
+        print('\032' * 100)
+
         if 'west' in open_boundary and flag:
             cgrd_at_bry = WestGrid(''.join((chd_dir, chd_grd)), chd_sigma_params, 'ROMS')
             proceed = True
@@ -1954,7 +2023,7 @@ if __name__ == '__main__':
         pgrd, junk = prepare_parent_roms(pgrd, balldist)
 
         # Get parent zr (pzr_bry) at child points
-        for k in np.arange(pgrd.N):
+        for k in xrange(int(pgrd.N)):
             pzr_bry_tmp = horizInterp(pgrd.tri, pgrd.scoord2z_r()[k].flat[pgrd.ball])(cgrd_at_bry.points)
             try:
                 pzr_bry = np.vstack((pzr_bry, pzr_bry_tmp))
@@ -1985,17 +2054,17 @@ if __name__ == '__main__':
 
                 ctracer = np.zeros((cgrd_at_bry.scoord2z_r().shape))
                 czeta = np.zeros((ctracer.shape[1]))
-                cu = np.zeros((cgrd_at_bry.N, czeta.size))
-                cv = np.zeros((cgrd_at_bry.N, czeta.size))
+                cu = np.zeros((int(cgrd_at_bry.N), czeta.size))
+                cv = np.zeros_like(cu)
                 cubar = np.zeros_like(czeta)
                 cvbar = np.zeros_like(czeta)
 
                 #ptracer = np.zeros((pgrd.N+2, czeta.size))
                 #pu = np.zeros((pgrd.N+2, czeta.size))
                 #pv = np.zeros((pgrd.N+2, czeta.size))
-                ptracer = np.zeros((pgrd.N, czeta.size))
-                pu = np.zeros((pgrd.N, czeta.size))
-                pv = np.zeros((pgrd.N, czeta.size))
+                ptracer = np.zeros((int(pgrd.N), czeta.size))
+                pu = np.zeros_like(ptracer)
+                pv = np.zeros_like(ptracer)
 
                 '''
                 Start main loop over roms_files list here
@@ -2004,6 +2073,9 @@ if __name__ == '__main__':
 
                     if first_file in roms_file:
                         active = True
+			dataind = first_rec - 1
+		    else:
+			dataind = 0
 
                     if active:
 
@@ -2013,13 +2085,13 @@ if __name__ == '__main__':
                         with netcdf.Dataset(roms_file) as nc:
                             # Loop over ocean_time
                             ot_loop_start = time.time()
-                            for dataind, ocean_time in enumerate(nc.variables['ocean_time'][:]):
+                            for ocean_time in nc.variables['ocean_time'][dataind:]:
 
                                 #print '---processing record', dataind + 1
 
                                 if 'zeta' in roms_var:
 
-                                    romsdata[0] = nc.variables['zeta'][dataind,pgrd.j0:pgrd.j1,pgrd.i0:pgrd.i1]
+                                    romsdata[0] = nc.variables['zeta'][dataind, pgrd.j0:pgrd.j1, pgrd.i0:pgrd.i1]
                                     # Read in variables and fill masked areas
                                     if 'rho_weight' in locals():
                                         romsdata[0] = rfile.fillmask(romsdata[0], pgrd.maskr(), rho_weight)
@@ -2031,9 +2103,9 @@ if __name__ == '__main__':
 
                                 elif 'u' in roms_var:
 
-                                    romsdata[:] = pgrd.u2rho_3d(nc.variables['u'][dataind,:,pgrd.j0:pgrd.j1,pgrd.i0:pgrd.i1-1])
-                                    romsdatav[:] = pgrd.v2rho_3d(nc.variables['v'][dataind,:,pgrd.j0:pgrd.j1-1,pgrd.i0:pgrd.i1])
-                                    for k in np.arange(pgrd.N):
+                                    romsdata[:] = pgrd.u2rho_3d(nc.variables['u'][dataind, :, pgrd.j0:pgrd.j1, pgrd.i0:pgrd.i1-1])
+                                    romsdatav[:] = pgrd.v2rho_3d(nc.variables['v'][dataind, :, pgrd.j0:pgrd.j1-1, pgrd.i0:pgrd.i1])
+                                    for k in xrange(int(pgrd.N)):
                                         if 'u_weight' in locals():
                                             romsdata[k] = rfile.fillmask(romsdata[k], pgrd.maskr(), u_weight)
                                             romsdatav[k] = rfile.fillmask(romsdatav[k], pgrd.maskr(), v_weight)
@@ -2050,15 +2122,15 @@ if __name__ == '__main__':
                                     #pv[0], pv[-1] = pv[1], pv[-2]
                                     cu[:] = vinterp.vert_interp(pu)
                                     cv[:] = vinterp.vert_interp(pv)
-                                    for k in np.arange(cgrd_at_bry.N):
+                                    for k in xrange(int(cgrd_at_bry.N)):
                                         cu[k], cv[k] = cgrd_at_bry.rotate(cu[k], cv[k], sign=1)
 
 
 
                                 else: # tracers
 
-                                    romsdata[:] = nc.variables[roms_var][dataind,:,pgrd.j0:pgrd.j1,pgrd.i0:pgrd.i1]
-                                    for k in np.arange(pgrd.N):
+                                    romsdata[:] = nc.variables[roms_var][dataind, :, pgrd.j0:pgrd.j1, pgrd.i0:pgrd.i1]
+                                    for k in xrange(int(pgrd.N)):
                                         romsdata[k] = rfile.fillmask(romsdata[k], pgrd.maskr(), rho_weight)
                                         #ptracer[k+1] = horizInterp(pgrd.tri, romsdata[k].flat[pgrd.ball])(cgrd_at_bry.points)
                                         ptracer[k] = horizInterp(pgrd.tri, romsdata[k].flat[pgrd.ball])(cgrd_at_bry.points)
@@ -2072,7 +2144,7 @@ if __name__ == '__main__':
 
                                     if 'zeta' in roms_var:
 
-                                        ncbry.variables['zeta_%s' %open_boundary][tind] = czeta
+                                        ncbry.variables['zeta_%s' % open_boundary][tind] = czeta * cgrd_at_bry.maskr().squeeze()
                                         ocean_time /= 86400.
                                         ncbry.variables['bry_time'][tind] = ocean_time
 
@@ -2083,29 +2155,41 @@ if __name__ == '__main__':
                                             cv[:,:-1] = 0.5 * (cv[:,:-1] + cv[:,1:])
                                             cubar[:] = cgrd.get_barotropic_velocity(cu, cgrd_at_bry.scoord2dz())
                                             cvbar[:-1] = cgrd.get_barotropic_velocity(cv[:,:-1], cgrd_at_bry.dz_v())
-                                            ncbry.variables['u_%s' %open_boundary][tind] = cu
-                                            ncbry.variables['ubar_%s' %open_boundary][tind] = cubar
-                                            ncbry.variables['v_%s' %open_boundary][tind] = cv[:,:-1]
-                                            ncbry.variables['vbar_%s' %open_boundary][tind] = cvbar[:-1]
+                                            
+                                            cu *= cgrd_at_bry.umask()
+                                            cubar *= cgrd_at_bry.umask()
+                                            cv[:,:-1] *= cgrd_at_bry.vmask()
+                                            cvbar[:-1] *= cgrd_at_bry.vmask()
+
+                                            ncbry.variables['u_%s' % open_boundary][tind] = cu
+                                            ncbry.variables['ubar_%s' % open_boundary][tind] = cubar
+                                            ncbry.variables['v_%s' % open_boundary][tind] = cv[:,:-1]
+                                            ncbry.variables['vbar_%s' % open_boundary][tind] = cvbar[:-1]
 
                                         elif open_boundary in ('north', 'south'):
                                             cu[:,:-1] = 0.5 * (cu[:,:-1] + cu[:,1:])
                                             cubar[:-1] = cgrd.get_barotropic_velocity(cu[:,:-1], cgrd_at_bry.dz_u())
                                             cvbar[:] = cgrd.get_barotropic_velocity(cv, cgrd_at_bry.scoord2dz())
-                                            ncbry.variables['u_%s' %open_boundary][tind] = cu[:,:-1]
-                                            ncbry.variables['ubar_%s' %open_boundary][tind] = cubar[:-1]
-                                            ncbry.variables['v_%s' %open_boundary][tind] = cv
-                                            ncbry.variables['vbar_%s' %open_boundary][tind] = cvbar
+                                            
+                                            cu[:,:-1] *= cgrd_at_bry.umask()
+                                            cubar[:-1] *= cgrd_at_bry.umask()
+                                            cv *= cgrd_at_bry.vmask()
+                                            cvbar *= cgrd_at_bry.vmask()
+
+                                            ncbry.variables['u_%s' % open_boundary][tind] = cu[:,:-1]
+                                            ncbry.variables['ubar_%s' % open_boundary][tind] = cubar[:-1]
+                                            ncbry.variables['v_%s' % open_boundary][tind] = cv
+                                            ncbry.variables['vbar_%s' % open_boundary][tind] = cvbar
 
                                         else:
                                             Exception
                                     else:
-
+                                        ctracer *= cgrd_at_bry.maskr().squeeze()
                                         ncbry.variables['%s_%s' %(roms_var, open_boundary)][tind] = ctracer
 
 
                                     tind += 1
-
+                                dataind += 1
 
 
                     if last_file in roms_file:
@@ -2119,7 +2203,7 @@ if __name__ == '__main__':
         bry_times = nc.variables['bry_time'][:]
         boundarylist = []
 
-        for bry_ind in np.arange(bry_times.size):
+        for bry_ind in xrange(bry_times.size):
 
             uvbarlist = []
 
@@ -2151,19 +2235,27 @@ if __name__ == '__main__':
 
                 if 'west' in open_boundary and flag:
                     nc.variables['u_west'][bry_ind] -= fc
+                    nc.variables['u_west'][bry_ind] *= cgrd.maskr()[:,0]
                     nc.variables['ubar_west'][bry_ind] -= fc
+                    nc.variables['ubar_west'][bry_ind] *= cgrd.maskr()[:,0]
 
                 elif 'east' in open_boundary and flag:
                     nc.variables['u_east'][bry_ind] += fc
+                    nc.variables['u_east'][bry_ind] *= cgrd.maskr()[:,-1]
                     nc.variables['ubar_east'][bry_ind] += fc
+                    nc.variables['ubar_east'][bry_ind] *= cgrd.maskr()[:,-1]
 
                 elif 'north' in open_boundary and flag:
                     nc.variables['v_north'][bry_ind] += fc
+                    nc.variables['v_north'][bry_ind] *= cgrd.maskr()[-1]
                     nc.variables['vbar_north'][bry_ind] += fc
+                    nc.variables['vbar_north'][bry_ind] *= cgrd.maskr()[-1]
 
                 elif 'south' in open_boundary and flag:
                     nc.variables['v_south'][bry_ind] -= fc
+                    nc.variables['v_south'][bry_ind] *= cgrd.maskr()[0]
                     nc.variables['vbar_south'][bry_ind] -= fc
+                    nc.variables['vbar_south'][bry_ind] *= cgrd.maskr()[0]
 
 
 

@@ -272,8 +272,8 @@ class EccoData (RomsData):
         except Exception: # triggered when all points are masked
             _mask = np.ones(_mask.shape)
         _mask = np.asarray(_mask, dtype=np.int)
-        _mask *= -1.
-        _mask += 1.
+        _mask *= -1
+        _mask += 1
         return _mask
     
         
